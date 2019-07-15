@@ -8,11 +8,11 @@ import {
 } from 'react-router-dom';
 
 import {
-  login,
   logout,
   auth,
   database
 } from './utils/FirebaseService';
+import Login from './components/Login/Login';
 
 import './App.css';
 import PostContainer from './components/PostContainer';
@@ -67,16 +67,6 @@ function PrivateRoute({ authenticated, component: Component, ...rest }) {
               state: { from: props.location }
           }} />
       )}/>
-  )
-}
-
-function Login({authenticated}) {
-  if(authenticated) return <Redirect to="/dashboard"/>
-  return (
-    <div>
-      <h2>You need to login to see this</h2> 
-      <button onClick={login}>Login With Google</button>
-    </div>
   )
 }
 
