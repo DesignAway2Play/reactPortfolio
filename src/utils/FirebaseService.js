@@ -24,7 +24,11 @@ function login() {
 }
 
 function logout() {
-    return auth.signOut(google_provider);
+    return firebase.auth().signOut().then(function() {
+        console.log('Signed Out');
+      }).catch(function(error) {
+        console.log('Error');
+      });
 }
 
 function createTodo(ref, todo) {
