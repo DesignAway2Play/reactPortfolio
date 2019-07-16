@@ -15,6 +15,10 @@ import Nav from './components/Nav/Nav';
 import Login from './components/Login/Login';
 
 import './App.css';
+import { fetchAPOD } from './services/nasa-api';
+import { fetchNEOToday } from './services/nasa-api';
+import APODPage from './pages/APOD/APOD';
+import NEOPage from './pages/NEO/NEO';
 import PostContainer from './components/PostContainer';
 
 const linkStyle = {
@@ -23,39 +27,6 @@ const linkStyle = {
   cursor: "pointer"
 }
 
-// const workPreload = {
-//   "row" : [
-//     {
-//       "name": this.state.User.name,
-//       "displayName": "https://reactjs.org",
-//       "description": "A JavaScript library for building user interfaces",
-//     },
-//     {
-//       "name": "Vuejs",
-//       "url": "https://vuejs.org",
-//       "description": "The Progressive JavaScript Framework",
-//     },
-//     {
-//       "name": "Emberjs",
-//       "url": "https://www.emberjs.com",
-//       "description": "Ember.js is an open-source JavaScript web framework, based on the Model–view–viewmodel pattern"
-//     }
-//   ]
-// }
-// const workList = (props) => {
-//   return (
-//     <React.Fragment>
-//       {props.items.data.map(item => (
-//         // , idx
-//         <React.Fragment key={item.id}>
-//           <h2>{item.name}</h2>
-//           <p>{item.url}</p>
-//           <p>{item.description}</p>
-//         </React.Fragment>
-//       ))}
-//     </React.Fragment>
-//   )
-// }
 
 function PrivateRoute({ authenticated, component: Component, ...rest }) {
   return (
@@ -111,6 +82,8 @@ class App extends Component {
         userId: 0,
         isProfile: false
       },
+      apod: null,
+      neo: null,
       newWork: {
         title: "",
         body: "",
@@ -127,7 +100,8 @@ class App extends Component {
   }
 
 async componentDidMount() {
-    await auth.onAuthStateChanged(user => {
+  
+    auth.onAuthStateChanged(user => {
       if(user) {
         this.setState({ authenticated: true,
           user });
@@ -138,6 +112,17 @@ async componentDidMount() {
         });
       }
     });
+    let foundAPOD = await fetchAPOD();
+    console.log(foundAPOD)
+    this.setState({
+      apod: foundAPOD
+    });
+    let foundNEOToday = await fetchNEOToday();
+    console.log(foundNEOToday)
+    this.setState({
+      neo: foundNEOToday
+    });
+    console.log(this.state.neo.near_earth_objects)
     let works = fetch('/api/works').then(res => res.json());
     let profile = fetch('/api/profile').then(res => res.json());
   }
@@ -187,6 +172,10 @@ async componentDidMount() {
   render() {
     return (
       <div className="App">
+        <header className="App-header">
+          <h1>Timothy Floro</h1>
+          <h2>Product Manager | Full Stack Developer (React.js, Python) | MBA</h2>
+        </header>
         <Router>
         <Nav
             Route exact path="/"
@@ -195,6 +184,14 @@ async componentDidMount() {
             component={Nav} />
         <Switch>
           <Route exact path="/" component={home} />
+          <Route path='/apod' render={ props => 
+            <APODPage {...props} apod={this.state.apod} /> 
+            } 
+          />
+          <Route path='/neo' render={ props => 
+            <NEOPage {...props} neo={this.state.neo} /> 
+            } 
+          />
           <PrivateRoute 
           authenticated={this.state.authenticated}
           handleChangeUserForm={this.handleChangeUserForm}
@@ -216,11 +213,7 @@ async componentDidMount() {
           )} />
       </Switch>
     </Router>
-    <header className="App-header">
-      <h1>Timothy Floro</h1>
-      <h2>Product Manager | Full Stack Developer (React.js, Python) | MBA</h2>
-      <h1>Portfolio</h1>
-    </header>
+
    
      { this.state.authenticated ?
        this.state.profile.isProfile 
