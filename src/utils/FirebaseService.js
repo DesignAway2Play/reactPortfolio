@@ -2,6 +2,8 @@ import firebase from "firebase/app";
 import "firebase/database";
 import "firebase/auth";
 
+// var admin = require('firebase-admin');
+// var serviceAccount = require('../ServiceAccountKey.json')
 firebase.initializeApp({
     apiKey: process.env.REACT_APP_API_KEY,
     authDomain: process.env.REACT_APP_AUTH_DOMAIN,
@@ -12,8 +14,20 @@ firebase.initializeApp({
     appId: process.env.REACT_APP_APP_ID
 });
 
+// admin.initializeApp({
+//     credential: admin.credential.cert(serviceAccount)
+// });
+
 // APIs and config vars
 
+// const uid ="";
+// admin.auth().createCustomToken(uid)
+// .then((customToken) => {
+//     console.log(customToken)
+// })
+// .catch((error) => {
+//     console.log("error creating token")
+// })
 const google_provider = new firebase.auth.GoogleAuthProvider();
 const database = firebase.database();
 const auth = firebase.auth();

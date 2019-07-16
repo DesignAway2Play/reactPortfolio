@@ -8,10 +8,10 @@ import {
 } from 'react-router-dom';
 
 import {
-  logout,
   auth,
   database
 } from './utils/FirebaseService';
+import Nav from './components/Nav/Nav';
 import Login from './components/Login/Login';
 
 import './App.css';
@@ -104,8 +104,13 @@ class App extends Component {
     this.state = {
       authenticated: false,
       user: null,
-      profile: null,
-      works: [],
+      profile: {
+        name: "",
+        aboutMe: "",
+        isAdmin: false,
+        userId: 0,
+        isProfile: false
+      },
       newWork: {
         title: "",
         body: "",
@@ -115,7 +120,8 @@ class App extends Component {
         name: "",
         aboutMe: "",
         isAdmin: false,
-        userId: null
+        userId: null,
+        isProfile: true
       }
     }
   }
@@ -181,23 +187,13 @@ async componentDidMount() {
   render() {
     return (
       <div className="App">
-                <Router>
-      <ul>
-          <li>
-              <Link to="/">Home</Link>
-          </li>
-          <li>
-              <Link to="/dashboard">Admin</Link>
-          </li>
-          {
-              this.state.authenticated
-              &&
-              <li style={linkStyle}>
-                  <span onClick={logout}>Logout</span>
-              </li>
-          }
-      </ul>
-      <Switch>
+        <Router>
+        <Nav
+            Route exact path="/"
+            isAdmin={this.state.profile.isAdmin}    
+            authenticated={this.state.authenticated}
+            component={Nav} />
+        <Switch>
           <Route exact path="/" component={home} />
           <PrivateRoute 
           authenticated={this.state.authenticated}
@@ -212,7 +208,7 @@ async componentDidMount() {
           path="/dashboard" 
           component={Dashboard} 
           />
-          <Route path="/login" render={props => (
+          <Route path="/" render={props => (
               <Login 
               {...props}
               authenticated={this.state.authenticated}
@@ -226,8 +222,8 @@ async componentDidMount() {
       <h1>Portfolio</h1>
     </header>
    
-      {
-       this.state.profile 
+     { this.state.authenticated ?
+       this.state.profile.isProfile 
         ? 
         <h2>You have a profile!</h2>
           : 
@@ -265,17 +261,25 @@ async componentDidMount() {
                       onChange={ this.handleChangeUserForm }
                       value="lol" />
                   </div>
+                  <div>
+                    <input 
+                      name="isProfile" 
+                      type="hidden" 
+                      onChange={ this.handleChangeUserForm }
+                      value="true" />
+                  </div>
                   
                   <input type="submit" value="Submit" />
                 </form>
               </div>
             </Fragment>
-      }
-        { 
+            : <h2>Not logged in</h2>
+    }
+        {/* { 
           this.state.works.length
           ? <PostContainer posts={this.state.works} />
           : <h3 style={{ textAlign: 'center' }}>Loading...</h3>
-        }
+        } */}
       </div>
     );
     }

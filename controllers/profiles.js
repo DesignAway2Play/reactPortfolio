@@ -6,9 +6,9 @@ module.exports = {
 };
 
 function getProfile(req, res) {
-    Profile.find({}, function(err, profile) {
-        // if (err) console.log(err);
-        // res.status(200).json(profile);
+    Profile.findbyId(req.user.id, function(err, profile) {
+        if (err) console.log(err);
+        res.status(200).json(profile);
     });
  }
  
