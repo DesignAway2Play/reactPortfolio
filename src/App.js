@@ -145,6 +145,23 @@ async componentDidMount() {
     })
   }
 
+  handlePopulateWorks = () => {
+    database.ref(this.state.worksRef)
+    .orderByChild('completed')
+    .on('value', snapshot => {
+        const newStateArray = [];
+        snapshot.forEach(childSnapshot => {
+            newStateArray.push({
+                id: childSnapshot.key,
+                ...childSnapshot.val()
+            });
+        });
+        this.setState({ todos: newStateArray });
+    });
+};
+
+
+
   handleSubmitWorkForm = (e) => {
     e.preventDefault();
     fetch(
