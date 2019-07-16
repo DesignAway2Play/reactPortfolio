@@ -9,25 +9,29 @@ function Nav({ history, location, authenticated, isAdmin }) {
             {
                 <Link className="navLeft" to="/">Home</Link>
             }
+             <br />
+                        {
+                <Link className="navLeft" to="/apod">APOD</Link>
+            }
+            <br />
+                                    {
+                <Link className="navLeft" to="/neo">NEO</Link>
+            }
             <br />
             {
                 authenticated ? 
-                <span
+                <button
                 onClick={
                     () => (
                     logout()
                     .then(() => {
                         history.push("/");
                     })
-                )}>Logout</span>
+                )}>Logout</button>
                 :
                 <Link to="/login">Login</Link>
             }
             <br />
-            { authenticated
-                &&
-                <span onClick={logout}>Log</span>
-            }
             { isAdmin
                 &&
                 <Link to="/Admin">Admin</Link>
