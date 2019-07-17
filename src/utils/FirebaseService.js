@@ -1,5 +1,6 @@
 import firebase from "firebase/app";
 import "firebase/database";
+import "firebase/firestore";
 import "firebase/auth";
 
 // var admin = require('firebase-admin');
@@ -9,7 +10,7 @@ firebase.initializeApp({
     authDomain: process.env.REACT_APP_AUTH_DOMAIN,
     databaseURL: process.env.REACT_APP_DATABASE_URL,
     projectId: process.env.REACT_APP_PROJECT_ID,
-    storageBucket: "",
+    storageBucket: process.env.REACT_APP_STORAGE_BUCKET,
     messagingSenderId: process.env.REACT_APP_MESSAGING_SENDER_ID,
     appId: process.env.REACT_APP_APP_ID
 });
@@ -31,6 +32,7 @@ firebase.initializeApp({
 const google_provider = new firebase.auth.GoogleAuthProvider();
 const database = firebase.database();
 const auth = firebase.auth();
+const curU = auth.currentUser
 
 // functions
 function login() {
@@ -45,19 +47,19 @@ function logout() {
       });
 }
 
-function createTodo(ref, todo) {
-    return database.ref(ref).push(todo);
+function createWork(ref, work) {
+    return database.ref(ref).push(work);
 }
 
-function removeTodo(ref, id) {
+function removeWork(ref, id) {
     return database.ref(`${ref}/${id}`).remove();
 }
 
-function updateComplete(dbRef, id) {
-    let ref = database.dbRef(`${dbRef}/${id}`)
+function updateWork(worksRef, id) {
+    let ref = database.worksRef(`${worksRef}/${id}`)
     ref.once('value', snapshot => {
-        let todo = snapshot.val();
-        todo.update({completed: !todo.completed });
+        let work = snapshot.val();
+        work.update({ work });
     });
 }
 
@@ -65,8 +67,9 @@ export {
     login,
     logout,
     auth,
+    curU,
     database,
-    createTodo,
-    removeTodo,
-    updateComplete
+    createWork,
+    removeWork,
+    updateWork
 }

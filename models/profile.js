@@ -4,7 +4,9 @@ const Schema = mongoose.Schema;
 const profileSchema = new Schema ({
     name: String,
     aboutMe: String,
-    isAdmin: Boolean
+    isAdmin: Boolean,
+    isProfile: Boolean,
+    userId: String
 }, {
     timestamps: true
 });

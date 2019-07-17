@@ -8,18 +8,25 @@ import {
 } from 'react-router-dom';
 
 import {
+  login,
+  logout,
   auth,
-  database
+  database,
+  createWork,
+  removeWork,
+  updateWork
 } from './utils/FirebaseService';
 import Nav from './components/Nav/Nav';
 import Login from './components/Login/Login';
-
+import PrivateRoute from './components/PrivateRoute/PrivateRoute';
 import './App.css';
 import { fetchAPOD } from './services/nasa-api';
 import { fetchNEOToday } from './services/nasa-api';
+import { fetchProfile } from './services/profile-api';
 import APODPage from './pages/APOD/APOD';
 import NEOPage from './pages/NEO/NEO';
-import PostContainer from './components/PostContainer';
+import AdminPage from './pages/Admin/Admin';
+import WorkContainer from './components/WorkContainer';
 
 const linkStyle = {
   textDecoration: "underline",
@@ -27,44 +34,12 @@ const linkStyle = {
   cursor: "pointer"
 }
 
-
-function PrivateRoute({ authenticated, component: Component, ...rest }) {
-  return (
-      <Route render={props => (
-          authenticated
-          ? <Component {...rest} {...props} />
-          : <Redirect to={{
-              pathname: "/login",
-              state: { from: props.location }
-          }} />
-      )}/>
-  )
-}
+const d = new Date().toISOString().split('T')[0];
 
 function home() {
   return (
     <div>
       <h1>Timothy's Portfolio</h1> 
-    </div>
-  )
-}
-
-function Dashboard(
-  user, test, handleChangeWorkForm, handleChangeUserForm, handleSubmitUserForm, handleSubmitWorkForm, handleRemove, handleComplete
-  ) {
-  return (
-    <div>
-      <h2>How goes it, if ({user.displayName}) {user.displayName}</h2> 
-      <img
-            style={{
-                height: 100,
-                borderRadius: '50%',
-                border: '2px solid black'
-            }} 
-            src={user.photoURL} 
-            alt={user.displayName}
-            />
-            <hr />
     </div>
   )
 }
@@ -75,6 +50,7 @@ class App extends Component {
     this.state = {
       authenticated: false,
       user: null,
+      worksRef: "works",
       profile: {
         name: "",
         aboutMe: "",
@@ -84,10 +60,15 @@ class App extends Component {
       },
       apod: null,
       neo: null,
+      works: [{
+        title: "",
+        body: "",
+        screenshot: ""
+      }],
       newWork: {
         title: "",
         body: "",
-        screenshoot: ""
+        screenshot: ""
       },
       newProfile: {
         name: "",
@@ -100,41 +81,54 @@ class App extends Component {
   }
 
 async componentDidMount() {
-  
-    auth.onAuthStateChanged(user => {
+  this.handlePopulateWorks();
+    await auth.onAuthStateChanged(user => {
       if(user) {
         this.setState({ authenticated: true,
           user });
+          var profileId = {...this.state.profile};
+          profileId.userId = user.uid;
+          (async () => {
+          let foundProfile = await fetchProfile(profileId.userId);
+          let profile = foundProfile[0]
+            this.setState({ profile: profile });
+            })();
       }
       else {
         this.setState({authenticated: false,
-          user: null
+          user: null,
+          worksRef: null,
+          profile: {
+            name: "",
+            aboutMe: "",
+            isAdmin: false,
+            userId: 0,
+            isProfile: false
+          }
         });
       }
     });
     let foundAPOD = await fetchAPOD();
-    console.log(foundAPOD)
     this.setState({
       apod: foundAPOD
     });
     let foundNEOToday = await fetchNEOToday();
-    console.log(foundNEOToday)
     this.setState({
       neo: foundNEOToday
     });
-    console.log(this.state.neo.near_earth_objects)
-    let works = fetch('/api/works').then(res => res.json());
-    let profile = fetch('/api/profile').then(res => res.json());
+    // let profile = fetch(`/api/profile/${profileId}`).then(res => res.json());
+    // this.setState({
+    //    profile 
+    // });
   }
 
   handleChangeWorkForm = (e) => {
     let newWork = { ...this.state.newWork }
     newWork[e.target.name] = e.target.value;
-
     this.setState({
       newWork
-    })
-  }
+    }) 
+  };
 
   handleChangeUserForm = (e) => {
     let newProfile = { ...this.state.newProfile }
@@ -147,34 +141,45 @@ async componentDidMount() {
 
   handlePopulateWorks = () => {
     database.ref(this.state.worksRef)
-    .orderByChild('completed')
+    .orderByChild('timestamp')
     .on('value', snapshot => {
-        const newStateArray = [];
+        const newWorks = [];
         snapshot.forEach(childSnapshot => {
-            newStateArray.push({
+            newWorks.push({
                 id: childSnapshot.key,
                 ...childSnapshot.val()
             });
         });
-        this.setState({ todos: newStateArray });
+        this.setState({ works: newWorks });
     });
 };
 
+handleUpdate = worksId => {
+  updateWork(this.state.worksRef, worksId);
+};
+
+handleRemove = worksId => {
+  removeWork(this.state.worksRef, worksId);
+};
 
 
   handleSubmitWorkForm = (e) => {
+    const { worksRef, newWork } = this.state;
     e.preventDefault();
-    fetch(
-      '/api/works', {
-      method: 'POST',
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(this.state.newWork)
-    })
+    createWork(worksRef, {
+      title: newWork.title,
+      body: newWork.body,
+      screenshot: newWork.screenshot
+    }).then(() => this.setState({ newWork: {
+      title: "",
+      body: "",
+      screenshot: ""
+    } }));
   };
 
   handleSubmitUserForm = (e) => {
+    let newProfile = this.state.newProfile;
+    newProfile.userId = this.state.user.uid
     e.preventDefault();
     fetch(
       '/api/profile', {
@@ -182,8 +187,8 @@ async componentDidMount() {
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify(this.state.newProfile)
-    })
+      body: JSON.stringify(newProfile)
+    });
   };
 
   render() {
@@ -211,16 +216,19 @@ async componentDidMount() {
           />
           <PrivateRoute 
           authenticated={this.state.authenticated}
+          isAdmin={this.state.profile.isAdmin}
+          works={this.state.works}
+          newWork={this.state.newWork}
           handleChangeUserForm={this.handleChangeUserForm}
           handleSubmitUserForm={this.handleSubmitUserForm}
           handleChangeWorkForm={this.handleChangeWorkForm}
           handleSubmitWorkForm={this.handleSubmitWorkForm}
-          handleComplete={this.handleComplete}
-          hanldeRemove={this.handleRemove}
+          handleRemove={this.handleRemove}
+          handleUpdate={this.handleUpdate}
           user={this.state.user}
           text={this.state.text}
-          path="/dashboard" 
-          component={Dashboard} 
+          path="/admin" 
+          component={AdminPage} 
           />
           <Route path="/" render={props => (
               <Login 
@@ -228,68 +236,71 @@ async componentDidMount() {
               authenticated={this.state.authenticated}
               />
           )} />
-      </Switch>
-    </Router>
+          </Switch>
+        </Router>
 
    
-     { this.state.authenticated ?
-       this.state.profile.isProfile 
-        ? 
-        <h2>You have a profile!</h2>
-          : 
-          <Fragment>
-            <div className="setupStyles">
-              <h2>Setup your profile</h2> 
-                <form onSubmit={this.handleSubmitUserForm}>
-                  <div className="field-wrapper">
-                    <label>Display Name</label>
-                    <input 
-                      name="name" 
-                      type="text" 
-                      onChange={ this.handleChangeUserForm }
-                      value={ this.state.newProfile.name } />
+        { 
+            auth.currentUser && this.state.profile.isProfile === true
+              ? 
+              <br />
+                :
+                auth.currentUser ?
+                <Fragment>
+                <div className="setupStyles">
+                  <h2>Setup your profile</h2> 
+                    <form onSubmit={this.handleSubmitUserForm}>
+                      <div className="field-wrapper">
+                        <label>Display Name</label>
+                        <input 
+                          name="name" 
+                          type="text" 
+                          onChange={ this.handleChangeUserForm }
+                          value={ this.state.newProfile.name } />
+                      </div>
+                      <div className="field-wrapper">
+                        <label>About Me</label>
+                        <input 
+                          name="aboutMe" 
+                          type="paragraph" 
+                          onChange={ this.handleChangeUserForm }
+                          value={ this.state.newProfile.aboutMe } />
+                      </div>
+                      <div>
+                        <input 
+                          name="isAdmin" 
+                          type="hidden" 
+                          onChange={ this.handleChangeUserForm }
+                          value={ this.state.newProfile.isAdmin } />
+                      </div>
+                      <div>
+                        <input 
+                          name="userId" 
+                          type="hidden" 
+                          onChange={ this.handleChangeUserForm }
+                          value="lol"/>
+                      </div>
+                      <div>
+                        <input 
+                          name="isProfile" 
+                          type="hidden" 
+                          onChange={ this.handleChangeUserForm }
+                          value="true" />
+                      </div>
+                      
+                      <input type="submit" value="Submit" />
+                    </form>
                   </div>
-                  <div className="field-wrapper">
-                    <label>About Me</label>
-                    <input 
-                      name="aboutMe" 
-                      type="paragraph" 
-                      onChange={ this.handleChangeUserForm }
-                      value={ this.state.newProfile.aboutMe } />
-                  </div>
-                  <div>
-                    <input 
-                      name="isAdmin" 
-                      type="hidden" 
-                      onChange={ this.handleChangeUserForm }
-                      value={ this.state.newProfile.isAdmin } />
-                  </div>
-                  <div>
-                    <input 
-                      name="userId" 
-                      type="hidden" 
-                      onChange={ this.handleChangeUserForm }
-                      value="lol" />
-                  </div>
-                  <div>
-                    <input 
-                      name="isProfile" 
-                      type="hidden" 
-                      onChange={ this.handleChangeUserForm }
-                      value="true" />
-                  </div>
-                  
-                  <input type="submit" value="Submit" />
-                </form>
-              </div>
-            </Fragment>
-            : <h2>Not logged in</h2>
-    }
-        {/* { 
+                </Fragment>
+                  : 
+                  <br />
+               
+        }
+        { 
           this.state.works.length
-          ? <PostContainer posts={this.state.works} />
+          ? <WorkContainer works={this.state.works} />
           : <h3 style={{ textAlign: 'center' }}>Loading...</h3>
-        } */}
+        }
       </div>
     );
     }

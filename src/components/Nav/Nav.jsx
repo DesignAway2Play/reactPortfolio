@@ -10,6 +10,11 @@ function Nav({ history, location, authenticated, isAdmin }) {
                 <Link className="navLeft" to="/">Home</Link>
             }
              <br />
+            { isAdmin
+                &&
+                <Link to="/Admin">Admin</Link>
+            }
+             <br />
                         {
                 <Link className="navLeft" to="/apod">APOD</Link>
             }
@@ -32,10 +37,6 @@ function Nav({ history, location, authenticated, isAdmin }) {
                 <Link to="/login">Login</Link>
             }
             <br />
-            { isAdmin
-                &&
-                <Link to="/Admin">Admin</Link>
-            }
     </nav>)
 }
 
